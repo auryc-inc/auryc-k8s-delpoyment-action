@@ -1,0 +1,27 @@
+name: 'Update deployment'
+description: 'Update auryc/k8s-deployment/{env}/image.tag '
+runs:
+  using: "composite"
+  steps:
+    - name: Check Out deployment
+      uses: actions/checkout@master
+      with:
+        repository: auryc-inc/k8s-deployment
+        ref: refs/heads/master
+        token: ${{ secrets.TOKEN_GITHUB_REPOS }}
+        path: k8s-deployment
+    - name: GitHub Environment Variables Action
+      uses: FranzDiebold/github-env-vars-action@v1.2.1
+    - name: config env
+      run: |
+        sudo wget https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64 -O /usr/bin/yq &&\
+        sudo chmod +x /usr/bin/yq
+    - name: update dsf
+      run: |
+        yq w -i ${{ env.GITHUB_REPOSITORY_NAME }}.yaml 'image.tag' ${{env.GITHUB_SHA_SHORT}}
+        git config --global user.email "ops@auryc.com"
+        git config --global user.name "${{ github.actor }}"
+        git add ${{ env.GITHUB_REPOSITORY_NAME }}.yaml
+        git commit -m "DEV: ${{ env.GITHUB_REPOSITORY_NAME }} release"
+        git push
+      working-directory: k8s-deployment/${{ env.deployment_env }}/auryc-app/values
